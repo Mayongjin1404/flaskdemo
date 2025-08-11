@@ -1,0 +1,11 @@
+{% extends "layout.html" %}
+{% block title %}About{% endblock %}
+{% block content %}
+  <h1>About</h1>
+  <p>This demo shows a tiny Flask app that searches Wikipedia and displays the result.</p>
+  <ul>
+    <li>Template inheritance from <code>layout.html</code></li>
+    <li>Simple navigation: Home, Search, About</li>
+    <li>Search term stored in the session, then results rendered on a new page</li>
+  </ul>
+{% endblock %}

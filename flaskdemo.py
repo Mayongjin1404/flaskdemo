@@ -2,62 +2,63 @@ from flask import Flask, render_template, request, redirect, url_for, session
 import wikipedia
 
 app = Flask(__name__)
-# This Flask app sets app.secret_key, which is an encryption key used "to sign cookies and other things".
-# Our app will work without it, but not completely. Without the secret key, we receive an error when searching:
-# RuntimeError: The session is unavailable because no secret key was set.
-# Storing secrets in plain code like this is not good practice. We know it.
-# We don't want you to think we're endorsing this practice!
-app.secret_key = 'IT@JCUA0Zr98j/3yXa R~XHH!jmN]LWX/,?RT'
+# NOTE: For coursework convenience only. Do NOT hard-code secrets in real projects.
+app.secret_key = "dev-only-change-me"
 
 
-@app.route('/')
+@app.route("/")
 def home():
-    """Home page route."""
     return render_template("home.html")
 
 
-@app.route('/about')
+@app.route("/about")
 def about():
-    """About page route."""
-    return "I am still working on this"
+    return render_template("about.html")
 
 
-@app.route('/search', methods=['POST', 'GET'])
+@app.route("/search", methods=["GET", "POST"])
 def search():
-    """Search page route. Return either form page to search, or search results."""
-    if request.method == 'POST':
-        session['search_term'] = request.form['search']
-        return redirect(url_for('results'))
+    """Render the search form or save the term then redirect to results."""
+    if request.method == "POST":
+        term = request.form.get("search", "").strip()
+        if not term:
+            # Re-render the form with a gentle message
+            return render_template("search.html", message="Please enter a search term.")
+        session["search_term"] = term
+        return redirect(url_for("results"))
+    # GET
     return render_template("search.html")
 
 
-@app.route('/results')
+@app.route("/results")
 def results():
-    """Results page route. Render the search results."""
-    search_term = session['search_term']
-    page = get_page(search_term)
-    return render_template("results.html", page=page)
+    """Perform the search and show results. Redirect to form if no term stored."""
+    term = session.get("search_term")
+    if not term:
+        return redirect(url_for("search"))
+    page = get_page(term)
+    return render_template("results.html", page=page, term=term)
 
 
-def get_page(search_term):
-    """Get a Wikipedia page object based on the search term."""
-    # This function is not a route
+def get_page(search_term: str):
+    """Return a wikipedia.page object for the given term.
+    - If the page doesn't exist, try a random page.
+    - If term is a disambiguation, pick the next most likely result.
+    """
     try:
-        page = wikipedia.page(search_term)
+        return wikipedia.page(search_term, auto_suggest=True)
     except wikipedia.exceptions.PageError:
-        # No such page, so return a random one
-        page = wikipedia.page(wikipedia.random())
-    except wikipedia.exceptions.DisambiguationError:
-        # This is a disambiguation page; get the first real page (close enough)
-        page_titles = wikipedia.search(search_term)
-        # Sometimes the next page has the same name (different caps), so don't try the same again
-        if page_titles[1].lower() == page_titles[0].lower():
-            title = page_titles[2]
-        else:
-            title = page_titles[1]
-        page = get_page(wikipedia.page(title))
-    return page
+        # No such page; try a random real page title
+        random_title = wikipedia.random()
+        return wikipedia.page(random_title)
+    except wikipedia.exceptions.DisambiguationError as e:
+        # Choose the first option different from the original term (case-insensitive)
+        for title in e.options:
+            if title.lower() != search_term.lower():
+                return get_page(title)
+        # Fallback: just take the first option
+        return get_page(e.options[0])
 
 
-if __name__ == '__main__':
-    app.run()
+if __name__ == "__main__":
+    app.run(debug=True)

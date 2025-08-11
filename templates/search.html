@@ -1,8 +1,10 @@
 {% extends "layout.html" %}
 {% block title %}Search Wikipedia{% endblock %}
 {% block content %}
-<form method="post" action="">
-    <p><label>Search Wikipedia: <input type="text" id="search" name="search"></label></p>
+  <h1>Search Wikipedia</h1>
+  {% if message %}<p><em>{{ message }}</em></p>{% endif %}
+  <form method="post" action="{{ url_for('search') }}">
+    <p><label>Search term: <input type="text" id="search" name="search" autofocus></label></p>
     <p><input type="submit" id="submit" value="Search"></p>
-</form>
+  </form>
 {% endblock %}
